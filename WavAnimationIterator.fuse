@@ -1,0 +1,853 @@
+--[[--
+Credits: Fuse made by BasketOfNekos (github.com/BasketOfNekos)
+--]]--
+
+--- Register the fuse so it will appear in fusion.
+FuRegisterClass("RecursiveWavRepeat", CT_Tool, {
+    REGS_Name = "Wav_Repeat",
+    REGS_Category = "Fuses",
+    REGS_OpDescription = "Repeats animations based on wav information",
+--     REGS_HelpTopic = "Example Location of Help", --This can be a URL
+--     REGS_URL = "www.blackmagicdesign.com", --Github URL
+
+    -- Permissions
+    REG_OpNoMask = false,
+    REG_NoObjMatCtrls = false,
+    REG_NoMotionBlurCtrls = true,
+    REG_NoBlendCtrls = false,
+
+    REG_SupportsDoD    = true,
+    REG_NoPreCalcProcess = true,
+    -- PreCalcProcess() https://www.steakunderwater.com/VFXPedia/96.0.243.189/index1c2b.html?title=Third_Party_Fuses/PreCalc_and_Process
+
+    -- Allow editing and reloading
+    REG_Fuse_NoEdit = false,
+    REG_Fuse_NoReload = false,
+
+    -- Version number of he plugin
+    REG_Version = 1,
+})
+
+--- Define UI controls.
+function Create()
+
+    self:BeginControlNest("Standard Controls", "StandardControls", true);
+
+--- @UI Animation Beginning:
+-- The first frame of the input animation.
+    InFrameBegin = self:AddInput("Animation Beginning", "AnimationBegin", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = true,
+        INP_MinScale = 0.0,
+        INP_Default = 0,
+    })
+
+--- @UI Animation End:
+-- The last frame of the input animation.
+    InFrameEnd = self:AddInput("Animation End", "AnimationEnd", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = true,
+        INP_MinScale = 0.0,
+        INP_Default = 0,
+    })
+
+--- @UI Animation Offset:
+-- An offset to the animation so you could time the animation to the beat. It moves frame 0 of the animation by the ammount put into the control and creates a "tail" behind frame 0.
+    InAnimationOffset = self:AddInput("Animation Offset", "AnimationOffset", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = true,
+        INP_MinScale = 0.0,
+        INP_Default = 0,
+    })
+
+--- @UI Animation Speed:
+-- Allows you to make the animation appear faster (Reduces or increases the max frame)
+    InAnimationSpeed = self:AddInput("Animation Speed", "AnimationSpeed", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = false,
+        INP_MinScale = 0.0,
+        INP_Default = 1.0,
+    })
+
+--- @UI Merge Apply Mode:
+-- Think photoshop blend modes. You have a variety of controls to determine how the recursively added animations are added onto the screen.
+    InApply = self:AddInput("Merge Apply Mode", "ApplyMode", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ComboControl",
+        INP_Default = 0.0,
+        INP_Integer = true,
+        CC_LabelPosition = "Horizontal",
+        INP_DoNotifyChanged = true,
+        { CCS_AddString = "Normal", },
+        { CCID_AddID    = "Merge", },
+        { CCS_AddString = "Screen", },
+        { CCS_AddString = "Dissolve", },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Darken", },
+        { CCS_AddString = "Multiply", },
+        { CCS_AddString = "Color Burn", },
+        { CCID_AddID    = "ColorBurn", },
+        { CCS_AddString = "Linear Burn",  },
+        { CCID_AddID    = "LinearBurn",  },
+        { CCS_AddString = "Darker Color",  },
+        { CCID_AddID    = "DarkerColor",  },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Lighten", },
+        { CCS_AddString = "Color Dodge", },
+        { CCID_AddID    = "ColorDodge", },
+        { CCS_AddString = "Linear Dodge",  },
+        { CCID_AddID    = "LinearDodge",  },
+        { CCS_AddString = "Lighter Color",  },
+        { CCID_AddID    = "LighterColor",  },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Overlay", },
+        { CCS_AddString = "Soft Light", },
+        { CCID_AddID    = "SoftLight", },
+        { CCS_AddString = "Hard Light", },
+        { CCID_AddID    = "HardLight", },
+        { CCS_AddString = "Vivid Light",  },
+        { CCID_AddID    = "VividLight",  },
+        { CCS_AddString = "Linear Light",  },
+        { CCID_AddID    = "LinearLight",  },
+        { CCS_AddString = "Pin Light",  },
+        { CCID_AddID    = "PinLight",  },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Difference", },
+        { CCS_AddString = "Exclusion", },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Hue", },
+        { CCS_AddString = "Saturation", },
+        { CCS_AddString = "Color", },
+        { CCS_AddString = "Luminosity",  },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Hypotenuse",  },
+        { CCS_AddString = "Geometric",  },
+        })
+
+--- @UI Operator:
+-- Another set of controls to determine how the recursively added animations are added onto the screen. Rather than how they are blended together, it's more about what order they are added on top of eachother.
+    InOperation = self:AddInput("Operator", "Operator", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ComboControl",
+        INP_Default = 0.0,
+        INP_Integer = true,
+        CC_LabelPosition = "Horizontal",
+        { CCS_AddString = "Over", },
+        { CCS_AddString = "In", },
+        { CCS_AddString = "Held Out", },
+        { CCID_AddID    = "HeldOut", },
+        { CCS_AddString = "Atop", },
+        { CCS_AddString = "XOr", },
+        { CCS_AddString = "Conjoint", },
+        { CCS_AddString = "Disjoint", },
+        { CCS_AddString = "Mask", },
+        { CCS_AddString = "Stencil", },
+        { CCS_AddString = "Under", },
+        })
+
+--- @UI Wav File:
+-- File location of the wav file.
+-- NOTE, often times wav files exported directly from DAW's like ableton won't have the proper BPM settings and will end up defaulting to 120 BPM. You also won't get any BPM changes reflected in the wav file.
+-- If you have this problem, you can fix this by uploading your wav file to www.beepbox.co, adding the proper BPM, and re-rendering it. This will work because beepbox actually puts the BPM in the wav file.
+    InWav = self:AddInput("Wav File", "WavFile", {
+        LINKID_DataType = "Text",
+        INPID_InputControl = "FileControl",
+        FCS_FilterString = "MID Files (*.mid)|*.mid",
+        INP_DoNotifyChanged = true,
+        INP_Default = 1,
+    })
+
+    self:BeginControlNest("Extra Wav Files", "ExtraWavFiles", false);
+
+    InWavFiles = self:AddInput("Wav Files", "WavFiles", {
+        LINKID_DataType = "Text",
+        INPID_InputControl = "TextEditControl",
+        INPS_DefaultText = "Example:\nC:/wav/file/1\nC:/wav/file/2\nC:/wav/file/3",
+        INP_DoNotifyChanged = true,
+        TEC_ReadOnly = false,
+        TEC_DeferSetInputs = true,
+    })
+
+    self:EndControlNest()
+
+    self:EndControlNest()
+
+    self:BeginControlNest("Project Settings", "ProjectSettings", true);
+
+    InAutofill = self:AddInput("Autofill Project Settings", "Autofill", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        INP_DoNotifyChanged = true,
+        --IC_ControlPage = -1, -- This puts the button at the top. Add this if the control is changed to autofill values outside of the "Project Settings" tab.
+        BTNCS_Execute = [[
+        local projectManager = resolve:GetProjectManager()
+        local project = projectManager:GetCurrentProject()
+
+        local timeline = project:GetCurrentTimeline()
+        local projectFrameRate = timeline:GetSetting("timelineFrameRate")
+        local projectLength = timeline:GetEndFrame() - timeline:GetStartFrame()
+
+        local item = timeline:GetCurrentVideoItem()
+        local itemlength = item:GetDuration()
+        local itemStart = item:GetStart()
+        local itemEnd = item:GetEnd()
+
+        print("ProjectFrameRate ", projectFrameRate, " projectLength ", projectLength, " itemLength ", itemlength, " TrackStart ", itemStart - 3600 * projectFrameRate)
+        -- tool.FrameRate = projectFrameRate * 2
+        tool.TrackLength = itemlength
+        tool.TrackStart = itemStart - 3600 * projectFrameRate -- Because DaVinci starts an hour in
+        ]],
+    })
+
+--- @UI Project Framerate:
+-- The framerate of your timeline.
+-- WARNING: Fusion effects work at 60fps, so setting this to anything else will stretch it.
+    InFrameRate = self:AddInput("[Warning] Project Frame Rate", "FrameRate", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = true,
+        INP_MinScale = 0.0,
+        INP_Default = 120,
+    })
+
+--- @UI Track Length (Frames):
+-- The length of the fusion composition in the number of frames. You can easily copy paste this from the "Render End Time" thing under the preview.
+    InTrackLength = self:AddInput("Track Length (Frames)", "TrackLength", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = true,
+        INP_MinScale = 0.0,
+        INP_Default = 1,
+    })
+
+    InTrackStart = self:AddInput("Track Start (Frames)", "TrackStart", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = true,
+        INP_MinScale = 0.0,
+        INP_Default = 0,
+    })
+
+    self:EndControlNest()
+
+    self:BeginControlNest("Add and Remove Times", "AddRemove", false);
+
+    self:BeginControlNest("Markers to Add Time", "MarkersAddTimeControlNest", true);
+
+    InTrackColorFilter = self:AddInput("Marker Track Filter", "TrackColorFilter", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ComboControl",
+        INP_Default = 0.0,
+        INP_Integer = true,
+        CC_LabelPosition = "Horizontal",
+        { CCS_AddString = "None", },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Audio", },
+        { CCS_AddString = "Video", },
+        { CCS_AddString = "TimeLine", },
+    })
+
+    InMarkerColorFilter = self:AddInput("Marker Color Filter", "MarkerColorFilter", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ComboControl",
+        INP_Default = 0.0,
+        INP_Integer = true,
+        CC_LabelPosition = "Horizontal",
+        { CCS_AddString = "None", },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Blue", },
+        { CCS_AddString = "Cyan", },
+        { CCS_AddString = "Green", },
+        { CCS_AddString = "Yellow", },
+        { CCS_AddString = "Red", },
+        { CCS_AddString = "Pink", },
+        { CCS_AddString = "Purple", },
+        { CCS_AddString = "Fuchsia", },
+        { CCS_AddString = "Rose", },
+        { CCS_AddString = "Lavender", },
+        { CCS_AddString = "Sky", },
+        { CCS_AddString = "Mint", },
+        { CCS_AddString = "Lemon", },
+        { CCS_AddString = "Sand", },
+        { CCS_AddString = "Cocoa", },
+        { CCS_AddString = "Cream", },
+    })
+
+    InMarkerFill = self:AddInput("Markers to Add Time", "TimeFillButton", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        INP_DoNotifyChanged = false,
+        BTNCS_Execute = [[
+            local projectManager = resolve:GetProjectManager()
+            local project = projectManager:GetCurrentProject()
+            local timeline = project:GetCurrentTimeline()
+            local item = timeline:GetCurrentVideoItem()
+
+            -- Get a list of every DaVinci Resolve "item"
+            local AudioItemList = {}
+            for i=1, timeline:GetTrackCount("audio") + 0 do
+                table.insert(AudioItemList, timeline:GetItemListInTrack("audio", i))
+            end
+
+            local VideoItemList = {}
+            for i=1, timeline:GetTrackCount("video") + 0 do
+                table.insert(VideoItemList, timeline:GetItemListInTrack("video", i))
+            end
+
+            -- print("----------------------------------", "TimeLineMaekers")
+
+            -- Get all the markers on the timeline
+            local TimeLineMarkers = {}
+            table.insert(TimeLineMarkers, timeline:GetMarkers())
+
+            -- print("----------------------------------", " AudioMarkers")
+
+            -- Get all the markers on every audio item
+            local AudioMarkers = {}
+            for i=1, #AudioItemList do
+                for j=1, #AudioItemList[i] do
+                    local AudioItem = AudioItemList[i][j]:GetMarkers()
+                    local length = 0
+
+                    for l, _ in pairs(AudioItem) do
+                        length = length + 1
+                    end
+
+                    if length > 0 then
+                        table.insert(AudioMarkers, AudioItem)
+                    end
+                end
+            end
+
+            -- print("----------------------------------", " VideoMarkers")
+
+            -- Get all the markers on every video item
+            local VideoMarkers = {}
+            for i=1, #VideoItemList do
+                for j=1, #VideoItemList[i] do
+                    local VideoItem = VideoItemList[i][j]:GetMarkers()
+                    local length = 0
+
+                    for l, _ in pairs(VideoItem) do
+                        length = length + 1
+                    end
+
+                    if length > 0 then
+                        table.insert(VideoMarkers, VideoItem)
+                    end
+                end
+            end
+
+            -- print("----------------------------------")
+
+            local Colors = {
+                "None",
+                "Blue",
+                "Cyan",
+                "Green",
+                "Yellow",
+                "Red",
+                "Pink",
+                "Purple",
+                "Fuchsia",
+                "Rose",
+                "Lavender",
+                "Sky",
+                "Mint",
+                "Lemon",
+                "Sand",
+                "Cocoa",
+                "Cream",
+            }
+
+            local Tracks = {
+                "None",
+                "Audio",
+                "Video",
+                "Timeline",
+            }
+
+            local TrackFilter = tool.TrackColorFilter[TIME_UNDEFINED] + 1
+            local ColorFilter = tool.MarkerColorFilter[TIME_UNDEFINED] + 1
+            local ParentAddTime = tool.AddTime[TIME_UNDEFINED]
+            local ColorFilteredMarkers = {}
+            local hash = {} -- For removing duplicates
+            local AllMarkers = {}
+
+            if Tracks[TrackFilter] == "None" then
+                table.insert(AllMarkers, TimeLineMarkers)
+                table.insert(AllMarkers, AudioMarkers)
+                table.insert(AllMarkers, VideoMarkers)
+            end
+            if Tracks[TrackFilter] == "Audio" then
+                table.insert(AllMarkers, AudioMarkers)
+            end
+            if Tracks[TrackFilter] == "Video" then
+                table.insert(AllMarkers, VideoMarkers)
+            end
+            if Tracks[TrackFilter] == "Timeline" then
+                table.insert(AllMarkers, TimeLineMarkers)
+            end
+
+            for markerType=1, #AllMarkers do
+                for item=1, #AllMarkers[markerType] do
+                    for frame, marker in pairs(AllMarkers[markerType][item]) do
+                        if Colors[ColorFilter] == "None" and (not hash[marker]) then
+                            table.insert(ColorFilteredMarkers, frame)
+                            hash[marker] = true
+                        elseif Colors[ColorFilter] == marker.color and (not hash[marker]) then
+                            table.insert(ColorFilteredMarkers, frame)
+                            hash[marker] = true
+                        end
+                    end
+                end
+            end
+
+            if ParentAddTime ~= "Example, add at frames 0, 1, 2:\n{0,1,2}" then
+                for tableValue in string.gmatch(ParentAddTime, "([%w%d%.]+)") do
+                    for index, marker in ipairs(ColorFilteredMarkers) do
+                        if tableValue + 0 == marker then
+                            table.remove(ColorFilteredMarkers, index)
+                            break
+                        end
+                    end
+                end
+            else
+                tool.AddTime = ""
+            end
+
+            local output = {tool.AddTime[TIME_UNDEFINED]}
+            table.insert(output, "{")
+            for _, frame in ipairs(ColorFilteredMarkers) do
+                table.insert(output, frame)
+                table.insert(output, ",")
+            end
+            if #output > 0 then
+                table.remove(output, #output)
+            end
+            if #output > 1 then
+                table.insert(output, "}")
+            end
+
+            local outputString = table.concat(output)
+            tool.AddTime = outputString
+        ]],
+    })
+
+    self:EndControlNest()
+
+--- @UI Add Wav:
+-- Input a table of values to add a new beat(s). This is so you can make quick edits without going and modifying the wav file.
+    InAddTime = self:AddInput("Add Time", "AddTime", {
+        LINKID_DataType = "Text",
+        INPID_InputControl = "TextEditControl",
+        INPS_DefaultText = "Example, add at frames 0, 1, 2:\n{0,1,2}",
+        INP_DoNotifyChanged = true,
+        TEC_ReadOnly = false,
+        TEC_DeferSetInputs = true,
+    })
+
+--- @UI Remove Wav:
+-- Input a table of values to remove beat(s).
+-- NOTE, The values are rounded when considering if they should be removed or not, this is to make it easier to actually remove an input. This can also have the side effect of deleting more than one note if they are too close to eachother. I would say this is very rare though.
+-- NOTE, You can check the console for a list of all the times you can remove.
+    InRemoveTime = self:AddInput("Remove Wav", "RemoveTime", {
+        LINKID_DataType = "Text",
+        INPID_InputControl = "TextEditControl",
+        INPS_DefaultText = "Example, remove at frames 0, 1, 2:\n{0,1,2}",
+        INP_DoNotifyChanged = true,
+        TEC_ReadOnly = false,
+        TEC_DeferSetInputs = true,
+    })
+
+    self:EndControlNest()
+
+    self:BeginControlNest("Advanced", "Advanced", false);
+
+--- @UI
+-- When the application cannot bake the BPM into the wav file this setting lets you force it in DaVinci Resolve.
+    InDeduplication = self:AddInput("Deduplication (frames)", "Deduplication", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = false,
+        INP_MinScale = 0.0,
+        INP_Default = 1,
+    })
+
+--- @UI Disable Rounding:
+-- Wav notes in context with BPM don't always match exactly with the fps of your timeline, so you'll end up having situations where a note will play halfway between 2 frames. This can be problematic in timelines with low fps, and to resolve this, you can have fusion calculate what a frame would be during that half frame.
+-- NOTE, This disables the "Manually Cache Frames" control because it defeats the purpose of that control.
+-- This will tank performance, so I reccomend turning it on only before rendering.
+    InRemoveRounding = self:AddInput("Disable Rounding", "RemoveRounding", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "CheckboxControl",
+        INP_DoNotifyChanged = true,
+        INP_Default = 0,
+    })
+
+--- @UI Manually Cache Frames:
+-- This has been made so it will stop asking the node tree upstream when it finishes caching all the frames.
+-- You may or may not have issues with fusion automatically unloading some of the frames needed for this node. This will (hopefully) resolve that.
+    InFrameCashe = self:AddInput("Manually Cache Frames", "FrameCache", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "CheckboxControl",
+        INP_Default = 0,
+        INP_Disabled = false,
+    })
+
+--- @UI Flip Tail:
+-- If you have overlapping content in your frames, it will let you control how they overlap before the offset (Frame of Beat) independantly.
+    InFlipTail = self:AddInput("Flip Tail", "FlipTail", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "CheckboxControl",
+        INP_DoNotifyChanged = true,
+        INP_Default = 0,
+    })
+
+--- @UI Use Loops:
+-- If you want to make a value change outside of the specified animation, you can set the animation to loop in the spline editor and then check this to open up those controls for use. This locks "Manually Cache Frames" because one will effectively negate the other.
+    InUseLoops = self:AddInput("Use Loops", "UseLoops", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "CheckboxControl",
+        INP_DoNotifyChanged = true,
+        INP_Default = 0,
+    })
+
+    self:EndControlNest()
+
+    -- Image I/O
+    InBackground = self:AddInput("Background", "Background", {
+        LINKID_DataType = "Image",
+        LINK_Main = 1,
+        INP_Required = false,
+        INP_Priority = -1,
+        INP_SendRequest = false,
+    })
+
+    OutImage = self:AddOutput("Output", "Output", {
+        LINKID_DataType = "Image",
+        LINK_Main = 1,
+    })
+end
+
+--- Takes a File, parses it to get the frame number where the wav note would occur. Then it will add or remove notes based on the "Add and Remove Times" controls.
+--- Also ptints the table of times to make it easier to use the "Add and Remove Times" controls.
+function WavParser(req)
+    -- UI parameters
+    local ProjectFrameRate = InFrameRate:GetValue(req).Value
+    local TrackStart = InTrackStart:GetValue(req).Value
+    local RemoveRounding = InRemoveRounding:GetValue(req).Value
+    local AddTime = InAddTime:GetValue(req).Value
+    local RemoveTime = InRemoveTime:GetValue(req).Value
+    local InputFile = InWav:GetValue(req).Value
+    local ExtraFiles = InWavFiles:GetValue(req).Value
+    local Deduplication = InDeduplication:GetValue(req).Value
+
+    -- Setup multi file support
+    local FileList = {}
+    if string.len(InputFile) > 0 then
+        table.insert(FileList, InputFile)
+    end
+    if ExtraFiles ~= "Example:\nC:/wav/file/1\nC:/wav/file/2\nC:/wav/file/3" then
+        for ExtraFile in string.gmatch(ExtraFiles, "[^\n]+") do
+            table.insert(FileList, ExtraFile)
+        end
+    end
+
+    function InsertInOrder(beatTimes, value)
+        for i=1, #beatTimes do
+            if beatTimes[i] >= value then
+                table.insert(beatTimes, i, value)
+                break
+            end
+        end
+        if #beatTimes == 0 or beatTimes[#beatTimes] <= value then
+            table.insert(beatTimes, #beatTimes + 1, value)
+        end
+        return beatTimes
+    end
+
+    -- Read wav pulses from file(s)
+    local beatTimes = {}
+    for index, file in ipairs(FileList) do
+        if string.len(file) > 0 then
+            -- Function parameters
+            print("parse wav file: ", file)
+            local wav = require("wav")
+
+            -- Send file to the wav parser
+            local tracks = wav.process(file, Deduplication, ProjectFrameRate)
+
+            for i, event in ipairs(tracks) do
+                if RemoveRounding == 1 then
+                    beatTimes = InsertInOrder(beatTimes, event)
+                else
+                    beatTimes = InsertInOrder(beatTimes, math.floor(event))
+                end
+            end
+            print("-----------------------")
+        end
+    end
+
+    -- Converts the times in the add input and adds them to the beatTimes table
+    if AddTime ~= "" and AddTime ~= "Example, add at frames 0, 1, 2:\n{0,1,2}" then
+        for tableValue in string.gmatch(AddTime, "([%w%d%.]+)") do
+            beatTimes = InsertInOrder(beatTimes, tableValue + 0 - TrackStart) -- +0 to turn it into a number instead of a string
+        end
+    end
+
+    -- Removes the times in the remove input
+    if RemoveTime ~= "" and RemoveTime ~= "Example, remove at frames 0, 1, 2:\n{0,1,2}" then
+        for tableValue in string.gmatch(RemoveTime, "([%w%d%.]+)") do
+            for i=1, #beatTimes do
+                if beatTimes[i] then
+                    if math.floor(beatTimes[i]) == math.floor(tableValue) + 0 - TrackStart then -- Rounding to make it easy to delete inputs while RemoveRounding is true.
+                        table.remove(beatTimes, i)
+                    end
+                end
+            end
+        end
+    end
+
+    -- De-duplicate times
+    local hash = {} -- For removing duplicates
+    local dedupBeatTimes = {}
+    for _, item in pairs(beatTimes) do
+        if (not hash[item]) then
+            table.insert(dedupBeatTimes, item)
+            hash[item] = true
+        end
+    end
+    beatTimes = dedupBeatTimes
+
+    -- Print table values so it's easier to use the "add and remove inputs" control
+    print("-----------------------")
+    for i=1, #beatTimes do
+        print("beat time ", beatTimes[i])
+    end
+    print("-----------------------")
+    print("Refreshed Wav")
+    return beatTimes
+end
+
+--- Takes the table created from the wav parser, and turns it into a more useful table of tables.
+--- Every entry in the table represents a frame, and the table within that represents the frames of the origional animation to play.
+--- @Param TrackLength, the length of the fusion comp (Does not change with the position in the timeline)
+--- @Param TrackStart,the location the fusion comp starts in the timeline.
+function MakeFrameTable(req, beatTimes)
+    -- UI parameters
+    local TrackLength  = InTrackLength:GetValue(req).Value
+    local TrackStart = InTrackStart:GetValue(req).Value
+    local AnimationBegin = InFrameBegin:GetValue(req).Value
+    local AnimationEnd = InFrameEnd:GetValue(req).Value
+    local AnimationOffset = InAnimationOffset:GetValue(req).Value
+    local FlipTail = InFlipTail:GetValue(req).Value
+    local UseLoops = InUseLoops:GetValue(req).Value
+    local AnimationSpeed = InAnimationSpeed:GetValue(req).Value
+
+    -- Function parameters
+    local TimeTable = {}
+    local startIndex
+    local AnimationLength = AnimationEnd - AnimationBegin
+
+    for frame = TrackStart, TrackLength do
+        local WavFrames = {}
+        local max = frame + AnimationOffset
+        local min = frame - AnimationLength + AnimationOffset -- Find the range of plausible animation frames for the frame to check if its on screen.
+        local minIndex
+
+        local tailCount = 1
+
+        startIndex = startIndex or 1
+        for animFrame = startIndex, #beatTimes do
+            if beatTimes[animFrame] > max then break end
+
+            if min < beatTimes[animFrame] then
+                frameToAdd = (frame - beatTimes[animFrame]) * AnimationSpeed + AnimationOffset + AnimationBegin + 1 -- Plus 1 so it includes the last frame
+
+                -- Adds frames in order so offset(AnimationOffset) will play correctly.
+                if frameToAdd >= AnimationOffset then
+                    table.insert(WavFrames, frameToAdd)
+                else
+                    table.insert(WavFrames, tailCount, frameToAdd)
+                    if FlipTail == 1 then
+                        tailCount = 1
+                    else
+                        tailCount = tailCount + 1
+                    end
+                end
+
+                minIndex = minIndex or animFrame
+            end
+        end
+        table.insert(TimeTable, WavFrames)
+
+        if minIndex ~= nil then
+            startIndex = minIndex
+        end
+    end
+
+    if UseLoops == 1 then
+        for animFrame = 1, #TimeTable do
+            for dupes = 1, #TimeTable[animFrame] do
+                local LoopNum = math.floor(animFrame / AnimationLength)
+                local LoopStartFrame = LoopNum * AnimationLength
+                local Remainder = animFrame - LoopStartFrame
+                if TimeTable[animFrame][dupes] > Remainder then
+                    LoopStartFrame =  LoopStartFrame - AnimationLength
+
+                    while LoopStartFrame >= TrackLength do
+                        LoopStartFrame = LoopStartFrame - AnimationLength
+                    end
+                end
+                TimeTable[animFrame][dupes] = LoopStartFrame + TimeTable[animFrame][dupes] + TrackStart
+            end
+        end
+    end
+
+    print("Refreshed Table")
+    return TimeTable
+end
+
+function Process(req)
+    -- Get UI parameters
+    local apply_mode = InApply:GetValue(req).Value + 1
+    local apply_operator = InOperation:GetValue(req).Value + 1
+    local ManualCache = InFrameCashe:GetValue(req).Value
+
+    -- From UI drop downs
+    local apply_modes = {
+        "Merge",
+        "Screen",
+        "Dissolve",
+        "Multiply",
+        "Overlay",
+        "SoftLight",
+        "HardLight",
+        "ColorDodge",
+        "ColorBurn",
+        "Darken",
+        "Lighten",
+        "Difference",
+        "Exclusion",
+        "Hue",
+        "Saturation",
+        "Color",
+        "Luminosity",
+        }
+    local apply_operators = { "Over", "In", "Held Out", "Atop", "XOr", }
+
+    -- Define fake Global Variables
+    local RefreshWav = InWav:GetAttr("INP_Default")
+    local RefreshTable = InTrackLength:GetAttr("INP_Default")
+    local RefreshCashe = 1
+
+    -- Take care of the fake global variables.
+    beatTimes = beatTimes or WavParser(req)
+    if RefreshWav == 1 then
+        beatTimes = WavParser(req)
+        InWav:SetAttrs({INP_Default = 0})
+        RefreshTable = 1 -- Also refresh the time table
+        RefreshCashe = 1 -- Also refresh the cashed frames
+    end
+
+    TimeTable = TimeTable or MakeFrameTable(req, beatTimes)
+    if RefreshTable == 1 then
+        TimeTable = MakeFrameTable(req, beatTimes)
+        InTrackLength:SetAttrs({INP_Default = 0})
+        RefreshCashe = 1 -- Also refresh the cashed frames
+    end
+
+    FrameTable = FrameTable or {}
+    if RefreshCashe == 1 then
+        FrameTable = {}
+        RefreshCashe = 0
+    end
+
+    -- Makes a blank canvas
+    local out = Image({IMG_NoData = true})  -- pg 79 https://www.steakunderwater.com/VFXPedia/96.0.243.189/index9205.html?title=Eyeon:Script/Reference/Applications/Fuse/Classes/Image/Attributes
+    out:Clear()
+
+    -- Merge frames specified in the FrameTable together.
+    -- +1 because davinci starts at frame 0 but lua tables start at index 1.
+    for i = 1, #TimeTable[req.Time + 1] do
+        local requestedKeyFrame = TimeTable[req.Time + 1][i]
+        local tmpimg
+
+        if ManualCache == 1 then
+            if FrameTable[requestedKeyFrame] then
+                tmpimg = FrameTable[requestedKeyFrame]
+            else
+                tmpimg = InBackground:GetSource(requestedKeyFrame) -- Find and copy animation frame
+                FrameTable[requestedKeyFrame] = tmpimg
+            end
+        else
+            tmpimg = InBackground:GetSource(requestedKeyFrame)
+        end
+
+        out:Merge(tmpimg, {
+            MO_ApplyMode = apply_modes[apply_mode],
+            MO_ApplyOperator = apply_operators[apply_operator],
+            MO_XOffset = 0.5,
+            MO_YOffset = 0.5,
+            MO_XAxis = 0.5,
+            MO_YAxis = 0.5,
+            MO_XSize = 1,
+            MO_YSize = 1,
+            MO_Angle = 0,
+            MO_FgAddSub = 1,
+            MO_BgAddSub = 1,
+            MO_BurnIn = 0,
+            MO_FgRedGain   = 1.0,
+            MO_FgGreenGain = 1.0,
+            MO_FgBlueGain  = 1.0,
+            MO_FgAlphaGain = 1,
+            MO_Invert = 1,
+            MO_DoZ = false,
+        })
+    end
+
+    OutImage:Set(req, out)
+end
+
+--- This automatically runs when the a new fuse node is added to the comp, or when the .comp file is opened up.
+function OnAddToFlow()
+    InTrackLength:SetAttrs({INP_Default = 1})
+end
+
+--- This runs when a UI parameter with the "INP_DoNotifyChanged" setting set to true.
+function NotifyChanged(inp, param, time)
+
+    if inp == InWav or inp == InAddTime or inp == InRemoveTime then
+        if param.Value == nil or param.Value == "" then
+            return
+        end
+        InWav:SetAttrs({INP_Default = 1}) -- Refreshes wav table, frame table, and manual cache table
+    end
+
+    -- Disables manual frame caching when using floating point frames. Esures high quality and reduces wasted memory.
+    if inp == InRemoveRounding or InUseLoops then
+        if param.Value == 1 then
+            InFrameCashe:SetSource(Number(0), 0)
+            InFrameCashe:SetAttrs({INP_Disabled = true})
+        else
+            InFrameCashe:SetAttrs({INP_Disabled = false})
+        end
+        InWav:SetAttrs({INP_Default = 1})
+    end
+
+    InTrackLength:SetAttrs({INP_Default = 1}) -- Refreshes frame table and manual cache table
+
+end
