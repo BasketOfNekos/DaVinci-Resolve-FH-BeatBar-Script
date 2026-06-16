@@ -57,7 +57,7 @@ I've provided a list of the recorded times in the consol (go to "Workspace > Con
 ### Advanced
 
 Deduplication (frames) <br />
-Wav files will probably record a lot of junk for every note, this lets you clean up that. If you find extra notes to be playing, increase this. This is in frame scale, so it will delete a note if it will be in the same place as the current note next frame if set to 1. 
+Wav files will probably record a lot of junk for every note, this lets you clean that up. If you find extra notes to be playing, increase this. This is in frame scale, so it will delete a note if it will be in the same place as the current note next frame (if set to 1). 
 
 Disable Rounding <br />
 You may end up having situations where a beat will play halfway between 2 frames. This can be problematic in timelines with low fps (below 144 fps), and to resolve this, you can have fusion calculate what a frame would be during that half frame. However, this will tank performance, so I reccomend turning it on only before rendering.
