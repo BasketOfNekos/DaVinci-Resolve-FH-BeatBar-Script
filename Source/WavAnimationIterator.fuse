@@ -462,7 +462,7 @@ function Create()
 -- Input a table of values to remove beat(s).
 -- NOTE, The values are rounded when considering if they should be removed or not, this is to make it easier to actually remove an input. This can also have the side effect of deleting more than one note if they are too close to eachother. I would say this is very rare though.
 -- NOTE, You can check the console for a list of all the times you can remove.
-    InRemoveTime = self:AddInput("Remove Wav", "RemoveTime", {
+    InRemoveTime = self:AddInput("Remove Time", "RemoveTime", {
         LINKID_DataType = "Text",
         INPID_InputControl = "TextEditControl",
         INPS_DefaultText = "Example, remove at frames 0, 1, 2:\n{0,1,2}",
