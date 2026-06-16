@@ -1,8 +1,8 @@
 # DaVinci-Resolve-FH-BeatBar-Script
 Used for iterating animations to WAV file(s) by automatically duplicating the animation on every audio pulse. 
 
-![Example2](Images/Example2)
-![Example1](Images/Example1)
+![Example2](Images/Example2.png)
+![Example1](Images/Example1.png)
 
 ## Installation 
 
@@ -35,7 +35,7 @@ You'll be able to find it in the fusion menu under the Fuses tab. Look for "Wav_
 
 ### Audio prep
 
-I recommend that you prepare your audio in a DAW, any should work. First, you get a really short click sound (here is an example: ![Example3](Sounds/Example3)) then you copy it everywhere you want a beat to show up. I recomend you use a sampler so you can replace the sound with other drum noises later. Then you just export the clicks as an 8 or 16 bit wav file.  
+I recommend that you prepare your audio in a DAW, any should work. First, you get a really short click sound (here is an example: ![Example3](Sounds/Example3.wav)) then you copy it everywhere you want a beat to show up. I recomend you use a sampler so you can replace the sound with other drum noises later. Then you just export the clicks as an 8 or 16 bit wav file.  
 
 ### Animation setup
 
