@@ -726,28 +726,48 @@ function Process(req)
     local apply_mode = InApply:GetValue(req).Value + 1
     local apply_operator = InOperation:GetValue(req).Value + 1
     local ManualCache = InFrameCashe:GetValue(req).Value
-
+    
     -- From UI drop downs
     local apply_modes = {
         "Merge",
         "Screen",
         "Dissolve",
+        "Darken",
         "Multiply",
+        "ColorBurn",
+        "LinearBurn",
+        "DarkerColor",
+        "Lighten",
+        "ColorDodge",
+        "LinearDodge",
+        "LighterColor",
         "Overlay",
         "SoftLight",
         "HardLight",
-        "ColorDodge",
-        "ColorBurn",
-        "Darken",
-        "Lighten",
+        "VividLight",
+        "LinearLight",
+        "PinLight",
         "Difference",
         "Exclusion",
         "Hue",
         "Saturation",
         "Color",
         "Luminosity",
+        "Hypotenuse",
+        "Geometric",
         }
-    local apply_operators = { "Over", "In", "Held Out", "Atop", "XOr", }
+    local apply_operators = {
+        "Over",
+        "In",
+        "HeldOut",
+        "Atop",
+        "XOr",
+        "Conjoint",
+        "Disjoint",
+        "Mask",
+        "Stencil",
+        "Under",
+        }
 
     -- Define fake Global Variables
     local RefreshWav = InWav:GetAttr("INP_Default")
