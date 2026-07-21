@@ -201,7 +201,7 @@ function Create()
         local itemEnd = item:GetEnd()
 
         print("ProjectFrameRate ", projectFrameRate, " projectLength ", projectLength, " itemLength ", itemlength, " TrackStart ", itemStart - 3600 * projectFrameRate)
-        -- tool.FrameRate = projectFrameRate * 2
+        tool.FrameRate = projectFrameRate
         tool.TrackLength = itemlength
         tool.TrackStart = itemStart - 3600 * projectFrameRate -- Because DaVinci starts an hour in
         ]],
