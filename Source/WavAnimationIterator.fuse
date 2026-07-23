@@ -240,7 +240,7 @@ function Create()
         INP_Default = 1,
     })
 
-    InTrackStart = self:AddInput("Track Start (Frames)", "TrackStart", {
+    InTrackStart = self:AddInput("Audio Start (Frames)", "TrackStart", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
         INP_DoNotifyChanged = true,
@@ -528,12 +528,12 @@ function Create()
 
 --- @UI Use Loops:
 -- If you want to make a value change outside of the specified animation, you can set the animation to loop in the spline editor and then check this to open up those controls for use. This locks "Manually Cache Frames" because one will effectively negate the other.
-    InUseLoops = self:AddInput("Use Loops", "UseLoops", {
-        LINKID_DataType = "Number",
-        INPID_InputControl = "CheckboxControl",
-        INP_DoNotifyChanged = true,
-        INP_Default = 0,
-    })
+--     InUseLoops = self:AddInput("Use Loops", "UseLoops", {
+--         LINKID_DataType = "Number",
+--         INPID_InputControl = "CheckboxControl",
+--         INP_DoNotifyChanged = true,
+--         INP_Default = 0,
+--     })
 
     self:EndControlNest()
 
@@ -664,7 +664,7 @@ function MakeFrameTable(req, beatTimes)
     local AnimationEnd = InFrameEnd:GetValue(req).Value
     local AnimationOffset = InAnimationOffset:GetValue(req).Value
     local FlipTail = InFlipTail:GetValue(req).Value
-    local UseLoops = InUseLoops:GetValue(req).Value
+--     local UseLoops = InUseLoops:GetValue(req).Value
     local AnimationSpeed = InAnimationSpeed:GetValue(req).Value
 
     -- Function parameters
@@ -687,15 +687,17 @@ function MakeFrameTable(req, beatTimes)
             if min < beatTimes[animFrame] then
                 frameToAdd = (frame - beatTimes[animFrame]) * AnimationSpeed + AnimationOffset + AnimationBegin + 1 -- Plus 1 so it includes the last frame
 
-                -- Adds frames in order so offset(AnimationOffset) will play correctly.
-                if frameToAdd >= AnimationOffset then
-                    table.insert(WavFrames, frameToAdd)
-                else
-                    table.insert(WavFrames, tailCount, frameToAdd)
-                    if FlipTail == 1 then
-                        tailCount = 1
+                if frameToAdd < AnimationLength then
+                    -- Adds frames in order so offset(AnimationOffset) will play correctly.
+                    if frameToAdd >= AnimationOffset then
+                        table.insert(WavFrames, frameToAdd)
                     else
-                        tailCount = tailCount + 1
+                        table.insert(WavFrames, tailCount, frameToAdd)
+                        if FlipTail == 1 then
+                            tailCount = 1
+                        else
+                            tailCount = tailCount + 1
+                        end
                     end
                 end
 
@@ -709,23 +711,23 @@ function MakeFrameTable(req, beatTimes)
         end
     end
 
-    if UseLoops == 1 then
-        for animFrame = 1, #TimeTable do
-            for dupes = 1, #TimeTable[animFrame] do
-                local LoopNum = math.floor(animFrame / AnimationLength)
-                local LoopStartFrame = LoopNum * AnimationLength
-                local Remainder = animFrame - LoopStartFrame
-                if TimeTable[animFrame][dupes] > Remainder then
-                    LoopStartFrame =  LoopStartFrame - AnimationLength
-
-                    while LoopStartFrame >= TrackLength do
-                        LoopStartFrame = LoopStartFrame - AnimationLength
-                    end
-                end
-                TimeTable[animFrame][dupes] = LoopStartFrame + TimeTable[animFrame][dupes] + TrackStart
-            end
-        end
-    end
+--     if UseLoops == 1 then
+--         for animFrame = 1, #TimeTable do
+--             for dupes = 1, #TimeTable[animFrame] do
+--                 local LoopNum = math.floor(animFrame / AnimationLength)
+--                 local LoopStartFrame = LoopNum * AnimationLength
+--                 local Remainder = animFrame - LoopStartFrame
+--                 if TimeTable[animFrame][dupes] > Remainder then
+--                     LoopStartFrame =  LoopStartFrame - AnimationLength
+--
+--                     while LoopStartFrame >= TrackLength do
+--                         LoopStartFrame = LoopStartFrame - AnimationLength
+--                     end
+--                 end
+--                 TimeTable[animFrame][dupes] = LoopStartFrame + TimeTable[animFrame][dupes] + TrackStart
+--             end
+--         end
+--     end
 
     print("Refreshed Table")
     return TimeTable
@@ -868,7 +870,8 @@ function NotifyChanged(inp, param, time)
     end
 
     -- Disables manual frame caching when using floating point frames. Esures high quality and reduces wasted memory.
-    if inp == InRemoveRounding or InUseLoops then
+--     if inp == InRemoveRounding or InUseLoops then
+    if inp == InRemoveRounding then
         if param.Value == 1 then
             InFrameCashe:SetSource(Number(0), 0)
             InFrameCashe:SetAttrs({INP_Disabled = true})
