@@ -672,7 +672,7 @@ function MakeFrameTable(req, beatTimes)
     local startIndex
     local AnimationLength = AnimationEnd - AnimationBegin
 
-    for frame = TrackStart, TrackLength do
+    for frame = -TrackStart, TrackLength do
         local WavFrames = {}
         local max = frame + AnimationOffset
         local min = frame - AnimationLength + AnimationOffset -- Find the range of plausible animation frames for the frame to check if its on screen.
