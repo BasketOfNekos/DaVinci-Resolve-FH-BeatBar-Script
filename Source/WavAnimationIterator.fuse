@@ -213,7 +213,7 @@ function Create()
         print("ProjectFrameRate ", projectFrameRate, " projectLength ", projectLength, " itemLength ", itemlength, " itemStart ", itemStart, " TrackStart ", itemStart - startTimeCodeSeconds * projectFrameRate)
         tool.FrameRate = projectFrameRate
         tool.TrackLength = itemlength
-        tool.TrackStart = itemStart - startTimeCodeSeconds * projectFrameRate
+        --tool.TrackStart = itemStart - startTimeCodeSeconds * projectFrameRate
         ]],
     })
 
@@ -297,7 +297,7 @@ function Create()
     InMarkerFill = self:AddInput("Markers to Add Time", "TimeFillButton", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ButtonControl",
-        INP_DoNotifyChanged = false,
+        INP_DoNotifyChanged = true,
         BTNCS_Execute = [[
             local projectManager = resolve:GetProjectManager()
             local project = projectManager:GetCurrentProject()
@@ -468,6 +468,84 @@ function Create()
         TEC_DeferSetInputs = true,
     })
 
+    InPreviousFrame = self:AddInput("<- Frame", "PreviousFrame", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        INP_DoNotifyChanged = false,
+        ICD_Width = 0.33,
+        BTNC_Align = "Left",
+        BTNCS_Execute = [[
+            comp.CurrentTime = comp.CurrentTime - 1
+        ]],
+    })
+
+    InButtonAddTime = self:AddInput("Add", "ButtonAddTime", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        INP_DoNotifyChanged = true,
+        ICD_Width = 0.33,
+        BTNC_Align = "Center",
+        BTNCS_Execute = [[
+            -- Function to make sure things are in order
+            function InsertInOrder(insertTable, value)
+                for i=1, #insertTable do
+                    if tonumber(insertTable[i]) >= tonumber(value) then
+                        table.insert(insertTable, i, value)
+                        break
+                    end
+                end
+                if #insertTable == 0 or tonumber(insertTable[#insertTable]) <= tonumber(value) then
+                    table.insert(insertTable, #insertTable + 1, value)
+                end
+                return insertTable
+            end
+
+            local addTimeString = tool.AddTime[TIME_UNDEFINED]
+            local addTime = {}
+            local theCurrentTime = comp.CurrentTime
+
+            -- Checks to see if the current time is already added and builds a table of the currently added times
+            if addTimeString ~= "Example, add at frames 0, 1, 2:\n{0,1,2}" then
+                for tableValue in string.gmatch(addTimeString, "([%w%d%.]+)") do
+                    InsertInOrder(addTime, tableValue)
+                    if tonumber(theCurrentTime) == tonumber(tableValue) then
+                        print("Already In AddTime")
+                        return
+                    end
+                end
+                for tableValue in string.gmatch(tool.CurrentTimes[TIME_UNDEFINED], "([%w%d%.]+)") do
+                    if tonumber(theCurrentTime) == tonumber(tableValue) then
+                        print("Already In CurrentTimes")
+                        return
+                    end
+                end
+            else
+                tool.AddTime = ""
+            end
+
+            -- Add the current time to the table, rebuild the string, then insert it into the control.
+            InsertInOrder(addTime, theCurrentTime)
+            addTimeString = "{"
+            for _, item in pairs(addTime) do
+                addTimeString = addTimeString .. item .. ","
+            end
+            addTimeString = addTimeString .. "}"
+
+            tool.AddTime = addTimeString
+        ]],
+    })
+
+    InNextFrame = self:AddInput("Frame ->", "NextFrame", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        INP_DoNotifyChanged = false,
+        ICD_Width = 0.33,
+        BTNC_Align = "Right",
+        BTNCS_Execute = [[
+            comp.CurrentTime = comp.CurrentTime + 1
+        ]],
+    })
+
 --- @UI Remove Wav:
 -- Input a table of values to remove beat(s).
 -- NOTE, The values are rounded when considering if they should be removed or not, this is to make it easier to actually remove an input. This can also have the side effect of deleting more than one note if they are too close to eachother. I would say this is very rare though.
@@ -481,6 +559,129 @@ function Create()
         TEC_DeferSetInputs = true,
     })
 
+    InPreviousTime = self:AddInput("<- Time", "PreviousTime", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        ICD_Width = 0.33,
+        BTNC_Align = "Left",
+        BTNCS_Execute = [[
+            currentTimesString = tool.CurrentTimes[TIME_UNDEFINED]
+            currentTimesTable = {}
+
+            for tableValue in string.gmatch(currentTimesString, "([%w%d%.]+)") do
+                table.insert(currentTimesTable, tableValue)
+            end
+
+            for index, item in ipairs(currentTimesTable) do
+                if tonumber(item) >= tonumber(comp.CurrentTime) then
+                    if currentTimesTable[index - 1] ~= nil then
+                        comp.CurrentTime = tonumber(currentTimesTable[index - 1])
+                    end
+                    return
+                end
+            end
+
+            comp.CurrentTime = tonumber(currentTimesTable[#currentTimesTable])
+        ]],
+    })
+
+    InButtonRemoveTime = self:AddInput("Remove", "ButtonRemoveTime", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        ICD_Width = 0.33,
+        BTNC_Align = "Center",
+        BTNCS_Execute = [[
+            -- Function to make sure things are in order
+            function InsertInOrder(insertTable, value)
+                for i=1, #insertTable do
+                    if tonumber(insertTable[i]) >= tonumber(value) then
+                        table.insert(insertTable, i, value)
+                        break
+                    end
+                end
+                if #insertTable == 0 or tonumber(insertTable[#insertTable]) <= tonumber(value) then
+                    table.insert(insertTable, #insertTable + 1, value)
+                end
+                return insertTable
+            end
+
+            local removeTimeString = tool.RemoveTime[TIME_UNDEFINED]
+            local removeTime = {}
+            local addTimeString = tool.AddTime[TIME_UNDEFINED]
+            local theCurrentTime = comp.CurrentTime
+
+            -- Checks to see if the current time is removable and builds a table of the currently removed times
+            if removeTimeString == "Example, remove at frames 0, 1, 2:\n{0,1,2}" then
+                removeTimeString = ""
+            end
+
+            local removable = false
+            for tableValue in string.gmatch(addTimeString, "([%w%d%.]+)") do
+                if tonumber(theCurrentTime) == tonumber(tableValue) then
+                    removable = true
+                end
+            end
+            for tableValue in string.gmatch(tool.CurrentTimes[TIME_UNDEFINED], "([%w%d%.]+)") do
+                if tonumber(theCurrentTime) == tonumber(tableValue) then
+                    removable = true
+                end
+            end
+            for tableValue in string.gmatch(removeTimeString, "([%w%d%.]+)") do
+                InsertInOrder(removeTime, tableValue)
+                if tonumber(theCurrentTime) == tonumber(tableValue) then
+                    print("Already In RemoveTime")
+                    return
+                end
+            end
+            if removable == false then return end
+
+            -- Add the current time to the table, rebuild the string, then insert it into the control.
+            InsertInOrder(removeTime, theCurrentTime)
+            removeTimeString = "{"
+            for _, item in pairs(removeTime) do
+                removeTimeString = removeTimeString .. item .. ","
+            end
+            removeTimeString = removeTimeString .. "}"
+
+            tool.RemoveTime = removeTimeString
+        ]],
+    })
+
+    InNextTime = self:AddInput("Time ->", "NextTime", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        ICD_Width = 0.33,
+        BTNC_Align = "Right",
+        BTNCS_Execute = [[
+            currentTimesString = tool.CurrentTimes[TIME_UNDEFINED]
+            currentTimesTable = {}
+
+            for tableValue in string.gmatch(currentTimesString, "([%w%d%.]+)") do
+                table.insert(currentTimesTable, tableValue)
+            end
+
+            for index, item in ipairs(currentTimesTable) do
+                if tonumber(item) > tonumber(comp.CurrentTime) then
+                    comp.CurrentTime = tonumber(currentTimesTable[index])
+                    return
+                end
+            end
+        ]],
+    })
+
+    self:BeginControlNest("Current Times", "CurrentTimeNest", false);
+
+    InCurrentTimes = self:AddInput("", "CurrentTimes", {
+        LINKID_DataType = "Text",
+        INPID_InputControl = "TextEditControl",
+        INPS_DefaultText = "",
+        TEC_Lines = 2,
+        INP_DoNotifyChanged = false,
+        TEC_ReadOnly = true,
+    })
+
+    self:EndControlNest()
+
     self:EndControlNest()
 
     self:BeginControlNest("Advanced", "Advanced", false);
@@ -493,7 +694,7 @@ function Create()
         INP_DoNotifyChanged = true,
         INP_Integer = false,
         INP_MinScale = 0.0,
-        INP_Default = 1,
+        INP_Default = 5,
     })
 
 --- @UI Disable Rounding:
@@ -607,7 +808,6 @@ function WavParser(req)
                     beatTimes = InsertInOrder(beatTimes, math.floor(event))
                 end
             end
-            print("-----------------------")
         end
     end
 
@@ -643,11 +843,13 @@ function WavParser(req)
     beatTimes = dedupBeatTimes
 
     -- Print table values so it's easier to use the "add and remove inputs" control
-    print("-----------------------")
+    beatTimesString = "{"
     for i=1, #beatTimes do
-        print("beat time ", beatTimes[i])
+        beatTimesString = beatTimesString .. beatTimes[i] .. ","
     end
-    print("-----------------------")
+    beatTimesString = beatTimesString .. "}"
+    InCurrentTimes:SetSource(Text(beatTimesString), req.Time)
+
     print("Refreshed Wav")
     return beatTimes
 end
