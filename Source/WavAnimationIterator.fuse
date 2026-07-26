@@ -465,6 +465,7 @@ function Create()
         INPS_DefaultText = "Example, add at frames 0, 1, 2:\n{0,1,2}",
         INP_DoNotifyChanged = true,
         TEC_ReadOnly = false,
+        TEC_Lines = 3,
         TEC_DeferSetInputs = true,
     })
 
@@ -556,6 +557,7 @@ function Create()
         INPS_DefaultText = "Example, remove at frames 0, 1, 2:\n{0,1,2}",
         INP_DoNotifyChanged = true,
         TEC_ReadOnly = false,
+        TEC_Lines = 3,
         TEC_DeferSetInputs = true,
     })
 
