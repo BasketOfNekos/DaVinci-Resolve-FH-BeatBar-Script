@@ -1013,7 +1013,12 @@ function Process(req)
     end
 
     -- Makes a blank canvas
-    local out = Image({IMG_NoData = true})  -- pg 79 https://www.steakunderwater.com/VFXPedia/96.0.243.189/index9205.html?title=Eyeon:Script/Reference/Applications/Fuse/Classes/Image/Attributes
+    -- pg 79 https://www.steakunderwater.com/VFXPedia/96.0.243.189/index9205.html?title=Eyeon:Script/Reference/Applications/Fuse/Classes/Image/Attributes
+    local out = Image({
+        IMG_Document = self.Comp,
+        IMG_Depth = 5, -- int8. See Fusion_Fuse_SDK page 80 for more information
+        IMG_NoData = true
+    })
     out:Clear()
 
     -- Merge frames specified in the FrameTable together.
