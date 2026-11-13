@@ -160,7 +160,7 @@ function Create()
     InWav = self:AddInput("Wav File", "WavFile", {
         LINKID_DataType = "Text",
         INPID_InputControl = "FileControl",
-        FCS_FilterString = "MID Files (*.mid)|*.mid",
+        FCS_FilterString = "WAV Files (*.wav)|*.wav",
         INP_DoNotifyChanged = true,
         INP_Default = 1,
     })
@@ -1092,4 +1092,14 @@ function NotifyChanged(inp, param, time)
 
     InTrackLength:SetAttrs({INP_Default = 1}) -- Refreshes frame table and manual cache table
 
+    if inp == InAnimationSpeed then
+        if param.Value < 1 then
+            InAnimationSpeed:SetSource(Number(1), 0)
+        end
+    end
+
+    if inp == InFrameRate then
+        local deDupeFrames = param.Value / 60
+        InDeduplication:SetSource(Number(deDupeFrames), 0)
+    end
 end
